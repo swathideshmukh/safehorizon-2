@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SafeHorizon — Week 1–2 Data Integration</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#07090f;--bg2:#0d1117;--bg3:#131a24;--bg4:#192030;--bg5:#1f293d;--g:#00f0c0;--r:#ff4560;--a:#ffb74d;--b:#40a9ff;--p:#b39dff;--text:#ccd6e8;--t2:#6b7e96;--t3:#334155;--brd:rgba(255,255,255,0.07);--font:'Outfit',sans-serif;--mono:'IBM Plex Mono',monospace;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:14px;overflow:hidden}
+.shell{display:grid;grid-template-rows:50px 1fr;height:100vh}
+.bar{background:var(--bg2);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 16px;gap:14px}
+.logotype{display:flex;align-items:center;gap:9px}
+.shield{width:28px;height:28px;background:var(--g);border-radius:7px;display:grid;place-items:center;flex-shrink:0}
+.shield svg{width:15px;height:15px}
+.brand{font-size:15px;font-weight:700;letter-spacing:-.4px}
+.wbadge{font-family:var(--mono);font-size:9px;padding:2px 8px;border:1px solid rgba(0,240,192,.3);color:var(--g);border-radius:20px}
+.bar-r{display:flex;align-items:center;gap:12px;margin-left:auto}
+.dsbadge{font-size:9px;font-family:var(--mono);padding:2px 7px;border-radius:4px;border:1px solid rgba(0,240,192,.25);background:rgba(0,240,192,.07);color:var(--g)}
+.live-ind{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--t2)}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.clk{font-family:var(--mono);font-size:11px;color:var(--t3)}
+.body{display:grid;grid-template-columns:194px 1fr 248px;overflow:hidden}
+.side{background:var(--bg2);border-right:1px solid var(--brd);padding:9px 8px;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+.main{overflow-y:auto;padding:13px;display:flex;flex-direction:column;gap:11px}
+.right{background:var(--bg2);border-left:1px solid var(--brd);overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:11px}
+.grp{font-size:8px;letter-spacing:2px;color:var(--t3);padding:10px 7px 4px;font-weight:600;text-transform:uppercase;font-family:var(--mono)}
+.nb{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;color:var(--t2);font-size:12px;font-weight:500;transition:.12s;border:none;background:none;width:100%;text-align:left;font-family:var(--font)}
+.nb:hover{background:var(--bg3);color:var(--text)}
+.nb.on{background:rgba(0,240,192,.08);color:var(--g)}
+.ni{width:14px;text-align:center;font-size:12px;flex-shrink:0}
+.nbadge{margin-left:auto;font-size:8px;font-weight:700;padding:1px 5px;border-radius:7px;font-family:var(--mono)}
+.card{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:13px}
+.ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.ct{font-size:12px;font-weight:600}
+.ctag{font-size:8px;font-family:var(--mono);color:var(--t3);background:var(--bg4);border:1px solid var(--brd);border-radius:4px;padding:2px 6px}
+.ctag.live{color:var(--g);border-color:rgba(0,240,192,.2)}
+.ctag.ml{color:var(--p);border-color:rgba(179,157,255,.2)}
+.ctag.osm{color:var(--b);border-color:rgba(64,169,255,.2)}
+.mrow{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.mc{background:var(--bg3);border:1px solid var(--brd);border-radius:10px;padding:11px 13px;position:relative;overflow:hidden}
+.mc::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--ac,var(--g))}
+.ml2{font-size:8px;font-family:var(--mono);color:var(--t3);letter-spacing:.9px;margin-bottom:5px}
+.mv{font-family:var(--mono);font-size:22px;font-weight:600;line-height:1;margin-bottom:3px}
+.ms2{font-size:9px;color:var(--t3)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+#lmap,#zmap{height:260px;border-radius:8px;overflow:hidden;border:1px solid var(--brd)}
+.leaflet-tile-pane{filter:saturate(.2) brightness(.35) hue-rotate(190deg)}
+.leaflet-control-attribution{display:none!important}
+.leaflet-popup-content-wrapper{background:var(--bg3)!important;border:1px solid var(--brd)!important;color:var(--text)!important;border-radius:8px!important;box-shadow:0 8px 30px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:var(--bg3)!important}
+.leaflet-popup-content{margin:10px 13px!important;font-size:11px!important;font-family:var(--font)!important;line-height:1.6!important}
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{font-size:8px;font-family:var(--mono);letter-spacing:.8px;color:var(--t3);text-align:left;padding:5px 8px;border-bottom:1px solid var(--brd)}
+.tbl td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.025);vertical-align:middle}
+.tbl tr:hover td{background:var(--bg4)}
+.pill{display:inline-flex;align-items:center;font-size:8px;font-weight:700;border-radius:8px;padding:2px 7px;letter-spacing:.4px;font-family:var(--mono)}
+.ph{background:rgba(255,69,96,.12);color:#ff4560;border:1px solid rgba(255,69,96,.25)}
+.pm{background:rgba(255,183,77,.1);color:#ffb74d;border:1px solid rgba(255,183,77,.2)}
+.pl{background:rgba(0,240,192,.08);color:#00f0c0;border:1px solid rgba(0,240,192,.18)}
+.sb{height:3px;background:var(--bg5);border-radius:2px;overflow:hidden;min-width:50px}
+.sf{height:100%;border-radius:2px;transition:width .4s}
+.pg{display:none;flex-direction:column;gap:11px}.pg.on{display:flex}
+.pt{font-size:8px;font-family:var(--mono);letter-spacing:1.2px;color:var(--t3);padding-bottom:8px;border-bottom:1px solid var(--brd);margin-bottom:8px}
+.dc{background:var(--bg4);border:1px solid var(--brd);border-radius:7px;padding:8px 10px;display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.dav{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:10px;font-weight:700;flex-shrink:0;font-family:var(--mono)}
+.di{flex:1;min-width:0}
+.dn2{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.drt{font-size:9px;color:var(--t3);font-family:var(--mono);margin-top:1px}
+.dsco{font-family:var(--mono);font-size:15px;font-weight:600}
+.ev{display:flex;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.ev:last-child{border-bottom:none}
+.ed{width:6px;height:6px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.et{font-size:10px;color:var(--t2);line-height:1.4}
+.etm{font-family:var(--mono);font-size:8px;color:var(--t3);margin-top:1px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fl{font-size:8px;font-family:var(--mono);color:var(--t3);letter-spacing:.7px}
+select,input[type=number]{background:var(--bg4);border:1px solid var(--brd);border-radius:7px;padding:7px 10px;font-size:11px;color:var(--text);font-family:var(--font);outline:none;width:100%}
+select:focus{border-color:rgba(0,240,192,.4)}
+select option{background:var(--bg4)}
+.slr{display:flex;align-items:center;gap:9px;margin-bottom:5px}
+.sln{font-size:10px;color:var(--t2);width:95px;flex-shrink:0}
+.slv{font-family:var(--mono);font-size:10px;min-width:30px;text-align:right}
+input[type=range]{flex:1;accent-color:var(--g);height:3px;cursor:pointer}
+.pbtn{width:100%;background:var(--g);border:none;border-radius:8px;padding:10px;font-size:12px;font-weight:700;color:var(--bg);cursor:pointer;font-family:var(--font);transition:opacity .12s}
+.pbtn:hover{opacity:.85}
+.pout{display:none;background:var(--bg4);border-radius:8px;padding:12px;border-left:3px solid var(--g);margin-top:9px}
+.pout.on{display:block}
+.psc{font-family:var(--mono);font-size:24px;font-weight:600;margin-bottom:6px}
+.cbr{height:5px;background:var(--bg5);border-radius:3px;margin-top:8px;overflow:hidden}
+.cbf{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--g),var(--p))}
+.alrt{display:flex;gap:9px;padding:10px;background:var(--bg4);border-radius:8px;border-left:3px solid var(--r);margin-bottom:7px}
+.alrt.w{border-left-color:var(--a)}
+.atitle{font-size:11px;font-weight:600;margin-bottom:2px}
+.adesc{font-size:10px;color:var(--t2);line-height:1.5}
+.atime{font-family:var(--mono);font-size:8px;color:var(--t3);margin-top:4px}
+.tabs{display:flex;gap:2px;background:var(--bg4);border-radius:7px;padding:2px}
+.tab{padding:4px 11px;border-radius:5px;font-size:10px;cursor:pointer;color:var(--t2);transition:.12s;font-weight:500;border:none;background:none;font-family:var(--font)}
+.tab.on{background:var(--bg2);color:var(--text)}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.si{background:var(--bg4);border-radius:7px;padding:9px;border:1px solid var(--brd)}
+.sil{font-size:8px;font-family:var(--mono);color:var(--t3);margin-bottom:3px;letter-spacing:.6px}
+.siv{font-size:12px;font-weight:600}
+.src-box{margin-top:auto;padding:10px 8px;border-top:1px solid var(--brd)}
+.src-title{font-size:8px;letter-spacing:1.4px;color:var(--t3);font-family:var(--mono);margin-bottom:7px}
+.src-item{font-size:9px;color:var(--t2);padding:2px 0;display:flex;align-items:center;gap:5px}
+::-webkit-scrollbar{width:3px;height:3px}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px}
+</style>
+</head>
+<body>
+<div class="shell">
+<div class="bar">
+  <div class="logotype">
+    <div class="shield"><svg viewBox="0 0 24 24" fill="none" stroke="#07090f" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L3 7v10l9 5 9-5V7L12 2z"/><circle cx="12" cy="12" r="2.5"/></svg></div>
+    <span class="brand">SafeHorizon</span>
+    <span class="wbadge">WEEK 1–2</span>
+  </div>
+  <div class="bar-r">
+    <span class="dsbadge">MoRTH 5k records</span>
+    <span class="dsbadge">Open-Meteo 366 days</span>
+    <span class="dsbadge">OSM 15 corridors</span>
+    <span class="dsbadge">RF AUC 0.82</span>
+    <div class="live-ind"><div class="pulse"></div><span>Live · all data loaded</span></div>
+    <div class="clk" id="clk">--:--:--</div>
+  </div>
+</div>
+<div class="body">
+<div class="side">
+  <div class="grp">Monitor</div>
+  <button class="nb on" onclick="go('dash',this)"><span class="ni">◈</span>Dashboard</button>
+  <button class="nb" onclick="go('map',this)"><span class="ni">◉</span>Live Map</button>
+  <div class="grp">Data Layers</div>
+  <button class="nb" onclick="go('accident',this)"><span class="ni">◬</span>Accident Data</button>
+  <button class="nb" onclick="go('weather',this)"><span class="ni">◇</span>Weather Intel</button>
+  <button class="nb" onclick="go('roads',this)"><span class="ni">⟁</span>Road Network</button>
+  <div class="grp">AI Engine</div>
+  <button class="nb" onclick="go('predict',this)"><span class="ni">◎</span>Risk Predictor</button>
+  <button class="nb" onclick="go('drivers',this)"><span class="ni">△</span>Driver Profiles</button>
+  <button class="nb" onclick="go('alerts',this)"><span class="ni">⚠</span>Alerts<span class="nbadge" id="nb-al" style="background:var(--r);color:#fff">0</span></button>
+  <div class="src-box">
+    <div class="src-title">DATA PIPELINE</div>
+    <div class="src-item"><span style="color:var(--g)">✦</span>MoRTH accident records</div>
+    <div class="src-item"><span style="color:var(--b)">✦</span>Open-Meteo 2024 weather</div>
+    <div class="src-item"><span style="color:var(--a)">✦</span>OpenStreetMap corridors</div>
+    <div class="src-item"><span style="color:var(--p)">✦</span>RandomForest AUC-ROC 0.82</div>
+    <div class="src-item"><span style="color:var(--g)">✦</span>Flask API backend</div>
+  </div>
+</div>
+
+<div class="main">
+
+<!-- DASHBOARD -->
+<div class="pg on" id="pg-dash">
+  <div class="mrow">
+    <div class="mc" style="--ac:var(--g)"><div class="ml2">FLEET SAFETY SCORE</div><div class="mv" id="m1" style="color:var(--g)">—</div><div class="ms2">ML computed</div></div>
+    <div class="mc" style="--ac:var(--r)"><div class="ml2">HIGH-RISK DRIVERS</div><div class="mv" id="m2" style="color:var(--r)">—</div><div class="ms2" id="m2s"></div></div>
+    <div class="mc" style="--ac:var(--a)"><div class="ml2">ACTIVE ALERTS</div><div class="mv" id="m3" style="color:var(--a)">—</div><div class="ms2">from ML pipeline</div></div>
+    <div class="mc" style="--ac:var(--b)"><div class="ml2">MODEL AUC-ROC</div><div class="mv" style="color:var(--b)">0.82</div><div class="ms2">200 estimators</div></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><span class="ct">Severity distribution — MoRTH 5k records</span><span class="ctag ml">ML TRAINED</span></div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;font-size:9px">
+        <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:7px;height:7px;border-radius:2px;background:var(--g);display:inline-block"></span>Minor (748)</span>
+        <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:7px;height:7px;border-radius:2px;background:var(--a);display:inline-block"></span>Serious (2,221)</span>
+        <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:7px;height:7px;border-radius:2px;background:var(--r);display:inline-block"></span>Fatal (2,031)</span>
+      </div>
+      <div style="position:relative;height:145px"><canvas id="ch-sev"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Monthly accident trend — 2024</span><span class="ctag">MoRTH PATTERN</span></div>
+      <div style="position:relative;height:165px"><canvas id="ch-monthly"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Accident causes — count vs fatal rate</span><span class="ctag">MoRTH ANALYSIS</span></div>
+    <div style="position:relative;height:145px"><canvas id="ch-causes"></canvas></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><span class="ct">Feature importance — Random Forest</span><span class="ctag ml">MODEL INTERNALS</span></div>
+      <div style="position:relative;height:155px"><canvas id="ch-fi"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Zone risk — ML predictions</span><span class="ctag ml">SCORED</span></div>
+      <div id="zone-mini"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LIVE MAP -->
+<div class="pg" id="pg-map">
+  <div class="card"><div class="ch"><span class="ct">Live vehicle tracking — Bengaluru</span><span class="ctag live">OSM TILES · LIVE</span></div>
+    <div id="lmap"></div>
+    <div style="display:flex;gap:12px;margin-top:8px;font-size:9px;flex-wrap:wrap">
+      <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:50%;background:var(--g);display:inline-block"></span>Safe</span>
+      <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:50%;background:var(--a);display:inline-block"></span>Moderate</span>
+      <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:50%;background:var(--r);display:inline-block"></span>High risk</span>
+      <span style="display:flex;align-items:center;gap:4px;color:var(--t2)"><span style="width:8px;height:8px;border-radius:50%;background:var(--p);display:inline-block"></span>ML hotspot</span>
+    </div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Drivers — ML scored</span><span class="ctag live">UPDATING</span></div>
+    <table class="tbl"><thead><tr><th>Driver</th><th>Vehicle</th><th>Road</th><th>Speed</th><th>Braking</th><th>Score</th><th>Status</th></tr></thead>
+    <tbody id="live-tbl"></tbody></table>
+  </div>
+</div>
+
+<!-- ACCIDENT -->
+<div class="pg" id="pg-accident">
+  <div class="g2">
+    <div class="card"><div class="ch"><span class="ct">Accident causes — MoRTH</span><span class="ctag">5,000 RECORDS</span></div>
+      <div style="position:relative;height:200px"><canvas id="ch-cause2"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Fatal rate by weather</span><span class="ctag">CROSS-ANALYSIS</span></div>
+      <div style="position:relative;height:200px"><canvas id="ch-wfatal"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Zone risk index — ML scored</span><span class="ctag ml">RANDOM FOREST</span></div>
+    <table class="tbl" id="zone-tbl"><thead><tr><th>Zone</th><th>Coordinates</th><th>Minor %</th><th>Serious %</th><th>Fatal %</th><th>Risk score</th></tr></thead><tbody id="zone-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- WEATHER -->
+<div class="pg" id="pg-weather">
+  <div class="g3">
+    <div class="card"><div class="ch"><span class="ct">Monthly rainfall</span><span class="ctag">OPEN-METEO 2024</span></div>
+      <div style="position:relative;height:155px"><canvas id="ch-rain"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Rainy days / month</span><span class="ctag">366 DAYS</span></div>
+      <div style="position:relative;height:155px"><canvas id="ch-raindays"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Risk multiplier</span><span class="ctag ml">COMPUTED</span></div>
+      <div style="position:relative;height:155px"><canvas id="ch-wmult"></canvas></div>
+    </div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Weather × accident severity</span><span class="ctag">MoRTH × WEATHER</span></div>
+    <div style="position:relative;height:155px"><canvas id="ch-wcross"></canvas></div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Monsoon risk assessment</span><span class="ctag ml">AI COMPUTED</span></div>
+    <div id="monsoon-txt" style="font-size:11px;color:var(--t2);line-height:1.9"></div>
+  </div>
+</div>
+
+<!-- ROADS -->
+<div class="pg" id="pg-roads">
+  <div class="card"><div class="ch"><span class="ct">Bengaluru road network — OpenStreetMap</span><span class="ctag osm">15 CORRIDORS</span></div>
+    <div id="zmap"></div>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Road inventory — OSM attributes</span><span class="ctag osm">SPEED LIMITS · LANES · LIGHTING</span></div>
+    <table class="tbl"><thead><tr><th>Road</th><th>Type</th><th>Speed limit</th><th>Lanes</th><th>Lighting</th><th>Risk mult.</th></tr></thead>
+    <tbody id="road-tbody"></tbody></table>
+  </div>
+</div>
+
+<!-- PREDICT -->
+<div class="pg" id="pg-predict">
+  <div class="g2">
+    <div class="card"><div class="ch"><span class="ct">ML risk predictor</span><span class="ctag ml">RANDOM FOREST · AUC 0.82</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="frow">
+          <div class="fg"><label class="fl">ROAD TYPE</label><select id="p-road"><option>NH</option><option>SH</option><option>MDR</option><option>ODR</option><option>Village Road</option></select></div>
+          <div class="fg"><label class="fl">CAUSE</label><select id="p-cause"><option>Overspeeding</option><option>Distracted driving</option><option>Drunk driving</option><option>Jumping red light</option><option>Wrong side</option></select></div>
+          <div class="fg"><label class="fl">TIME</label><select id="p-time"><option>Dawn</option><option>Morning</option><option>Afternoon</option><option selected>Evening</option><option>Night</option><option>Late Night</option></select></div>
+          <div class="fg"><label class="fl">WEATHER</label><select id="p-weather"><option selected>Clear</option><option>Cloudy</option><option>Rainy</option><option>Foggy</option><option>Stormy</option></select></div>
+          <div class="fg"><label class="fl">AREA TYPE</label><select id="p-area"><option selected>Urban</option><option>Rural</option><option>Highway</option><option>Semi-urban</option></select></div>
+          <div class="fg"><label class="fl">ROAD CONDITION</label><select id="p-cond"><option selected>Good</option><option>Fair</option><option>Poor</option><option>Under repair</option></select></div>
+          <div class="fg"><label class="fl">LIGHTING</label><select id="p-light"><option selected>Daylight</option><option>Artificial light</option><option>No light</option></select></div>
+          <div class="fg"><label class="fl">JUNCTION?</label><select id="p-junc"><option value="0">No</option><option value="1">Yes</option></select></div>
+        </div>
+        <div>
+          <div class="slr"><span class="sln">Speed (km/h)</span><input type="range" min="10" max="130" value="65" id="sl-spd" oninput="sv('sv-spd',this.value)"><span class="slv" id="sv-spd">65</span></div>
+          <div class="slr"><span class="sln">Hard braking</span><input type="range" min="0" max="10" value="2" id="sl-brk" oninput="sv('sv-brk',this.value)"><span class="slv" id="sv-brk">2</span></div>
+          <div class="slr"><span class="sln">Phone events</span><input type="range" min="0" max="10" value="0" id="sl-phn" oninput="sv('sv-phn',this.value)"><span class="slv" id="sv-phn">0</span></div>
+          <div class="slr"><span class="sln">Vehicles involved</span><input type="range" min="1" max="5" value="2" id="sl-veh" oninput="sv('sv-veh',this.value)"><span class="slv" id="sv-veh">2</span></div>
+          <div class="slr"><span class="sln">Pedestrians</span><input type="range" min="0" max="3" value="0" id="sl-ped" oninput="sv('sv-ped',this.value)"><span class="slv" id="sv-ped">0</span></div>
+        </div>
+        <button class="pbtn" id="pbtn" onclick="doPredict()">▶ Run Random Forest Prediction</button>
+        <div class="pout" id="pout"></div>
+      </div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">Prediction log</span><span class="ctag">SESSION</span></div>
+      <div id="pred-log" style="font-size:10px;color:var(--t3);max-height:190px;overflow-y:auto">No predictions yet.</div>
+      <div class="ch" style="margin-top:13px"><span class="ct">Feature importance</span></div>
+      <div style="position:relative;height:170px"><canvas id="ch-fi2"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- DRIVERS -->
+<div class="pg" id="pg-drivers">
+  <div class="card">
+    <div class="ch"><span class="ct">Driver profiles — ML scored from telematics</span>
+      <div class="tabs" id="dtabs">
+        <button class="tab on" onclick="fD('all',this)">All</button>
+        <button class="tab" onclick="fD('high',this)">High</button>
+        <button class="tab" onclick="fD('mid',this)">Moderate</button>
+        <button class="tab" onclick="fD('safe',this)">Safe</button>
+      </div>
+    </div>
+    <table class="tbl"><thead><tr><th>Driver</th><th>Vehicle</th><th>Road</th><th>Speed</th><th>Braking</th><th>Phone</th><th>Score</th><th>Status</th></tr></thead>
+    <tbody id="d-tbl"></tbody></table>
+  </div>
+  <div class="card"><div class="ch"><span class="ct">Risk score distribution — 25 drivers</span><span class="ctag ml">ML COMPUTED</span></div>
+    <div style="position:relative;height:140px"><canvas id="ch-dist"></canvas></div>
+  </div>
+</div>
+
+<!-- ALERTS -->
+<div class="pg" id="pg-alerts">
+  <div class="card"><div class="ch"><span class="ct">Active alerts — ML pipeline</span><span class="ctag live" id="al-tag">0 OPEN</span></div>
+    <div id="al-list"></div>
+  </div>
+  <div class="g2">
+    <div class="card"><div class="ch"><span class="ct">Alert breakdown</span></div>
+      <div style="position:relative;height:155px"><canvas id="ch-alrt"></canvas></div>
+    </div>
+    <div class="card"><div class="ch"><span class="ct">System status</span></div>
+      <div class="sg">
+        <div class="si"><div class="sil">AUC-ROC</div><div class="siv" style="color:var(--g)">0.8205</div></div>
+        <div class="si"><div class="sil">TRAINING</div><div class="siv">4,000</div></div>
+        <div class="si"><div class="sil">FEATURES</div><div class="siv">18</div></div>
+        <div class="si"><div class="sil">ESTIMATORS</div><div class="siv">200</div></div>
+        <div class="si"><div class="sil">MAX DEPTH</div><div class="siv">12</div></div>
+        <div class="si"><div class="sil">TEST SET</div><div class="siv">1,000</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class="right">
+  <div><div class="pt">TOP RISKY DRIVERS</div><div id="rp-drv"></div></div>
+  <div><div class="pt">LIVE EVENT FEED</div><div id="rp-feed"></div></div>
+  <div><div class="pt">WEATHER — BENGALURU</div><div id="rp-wx" style="font-size:10px;color:var(--t2)"></div></div>
+  <div><div class="pt">DATA PIPELINE</div>
+    <div class="sg">
+      <div class="si"><div class="sil">MoRTH REC.</div><div class="siv" style="color:var(--g)">5,000</div></div>
+      <div class="si"><div class="sil">WX DAYS</div><div class="siv" style="color:var(--b)">366</div></div>
+      <div class="si"><div class="sil">OSM ROADS</div><div class="siv" style="color:var(--a)">15</div></div>
+      <div class="si"><div class="sil">DRIVERS</div><div class="siv" style="color:var(--p)">25</div></div>
+    </div>
+  </div>
+</div>
+</div>
+</div>
+<script>
+const $ = id => document.getElementById(id);
+
+// GLOBAL STATE
+let DRIVERS = [];
+let ALERTS = [];
+
+// ================= FETCH FUNCTIONS =================
+
+async function loadDrivers() {
+  try {
+    const res = await fetch("http://localhost:5000/drivers");
+    DRIVERS = await res.json();
+    renderDrivers();
+  } catch (err) {
+    console.error("Drivers error:", err);
+  }
+}
+
+async function loadAlerts() {
+  try {
+    const res = await fetch("http://localhost:5000/alerts");
+    ALERTS = await res.json();
+    renderAlerts();
+  } catch (err) {
+    console.error("Alerts error:", err);
+  }
+}
+
+// ================= RENDER FUNCTIONS =================
+
+function renderDrivers() {
+  const table = $("d-tbl");
+  table.innerHTML = "";
+
+  DRIVERS.forEach(d => {
+    table.innerHTML += `
+      <tr>
+        <td>${d.name}</td>
+        <td>${d.vehicle}</td>
+        <td>${d.road}</td>
+        <td>${d.speed}</td>
+        <td>${d.braking}</td>
+        <td>${d.phone}</td>
+        <td>${d.risk}</td>
+        <td>${d.risk > 60 ? "HIGH" : "SAFE"}</td>
+      </tr>
+    `;
+  });
+}
+
+function renderAlerts() {
+  const container = $("al-list");
+  container.innerHTML = "";
+
+  ALERTS.forEach(a => {
+    container.innerHTML += `
+      <div class="alrt">
+        <div>
+          <div class="atitle">${a.title}</div>
+          <div class="adesc">${a.desc}</div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// ================= PREDICTION =================
+
+async function doPredict() {
+  const inputData = {
+    road_type: $("p-road").value,
+    cause: $("p-cause").value,
+    time: $("p-time").value,
+    weather: $("p-weather").value,
+    area_type: $("p-area").value,
+    road_condition: $("p-cond").value,
+    light: $("p-light").value,
+    junction: $("p-junc").value,
+    speed: $("sl-spd").value,
+    braking: $("sl-brk").value,
+    phone: $("sl-phn").value
+  };
+
+  try {
+    const res = await fetch("http://localhost:5000/predict", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(inputData)
+    });
+
+    const data = await res.json();
+
+    $("pout").classList.add("on");
+    $("pout").innerHTML = `
+      <div class="psc">${data.risk}</div>
+      <div>Risk Score</div>
+    `;
+  } catch (err) {
+    console.error("Prediction error:", err);
+  }
+}
+
+// ================= INIT =================
+
+window.onload = () => {
+  loadDrivers();
+  loadAlerts();
+};
+</script></body>
+</html>
